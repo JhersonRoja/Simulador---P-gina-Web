@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Avanzado - Generador Electromagnético</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="lab-container">
+        <!-- HEADER -->
+        <header class="lab-header">
+            <div class="brand">
+                <span class="indicator glowing"></span>
+                <h1>GENERADOR ELECTROMAGNÉTICO POR INDUCCIÓN</h1>
+            </div>
+            <div class="status-panel">
+                <span class="label">ESTADO: </span>
+                <span id="systemStatus" class="status-text ok">EN LÍNEA</span>
+            </div>
+        </header>
+
+        <div class="main-grid">
+            
+            <!-- PANEL IZQUIERDO: GENERADOR -->
+            <section class="generator-view">
+                <div class="panel-title">CORTE TRANSVERSAL DEL ALTERNADOR</div>
+                <div class="canvas-container">
+                    <canvas id="generatorCanvas" width="400" height="400"></canvas>
+                    <div class="rpm-overlay">
+                        Motor: <span id="overlayRpm">36</span> RPM
+                    </div>
+                </div>
+            </section>
+
+            <!-- PANEL DERECHO: OSCILOSCOPIO Y DATOS -->
+            <section class="data-view">
+                
+                <div class="oscilloscope-panel">
+                    <div class="panel-title">OSCILOSCOPIO DIGITAL - Trazado de V(t)</div>
+                    <div class="osc-display">
+                        <canvas id="oscCanvas" width="550" height="200"></canvas>
+                        <div class="osc-grid"></div>
+                    </div>
+                </div>
+
+                <!-- Displays Numéricos Corregidos -->
+                <div class="readouts-grid">
+                    <div class="readout-box">
+                        <div class="readout-title">VOLTAJE PICO (V<sub>p</sub>)</div>
+                        <div class="readout-value" id="valVPeak">0.0 <span class="unit">V</span></div>
+                    </div>
+                    <div class="readout-box">
+                        <div class="readout-title">VOLTAJE RMS (V<sub>rms</sub>)</div>
+                        <div class="readout-value" id="valVRms">0.0 <span class="unit">V</span></div>
+                    </div>
+                    <div class="readout-box highlight">
+                        <div class="readout-title">V. INSTANTÁNEO</div>
+                        <div class="readout-value" id="valVInst">0.0 <span class="unit">V</span></div>
+                    </div>
+                    <div class="readout-box">
+                        <div class="readout-title">FRECUENCIA (f)</div>
+                        <div class="readout-value" id="valFreq">0.00 <span class="unit">Hz</span></div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- PANEL INFERIOR: CONSOLA DE CONTROL -->
+        <section class="control-console">
+            <div class="control-section">
+                <h3>⚙️ RÉGIMEN DEL MOTOR (RPM)</h3>
+                <p class="desc">Niveles de prueba para toma de datos:</p>
+                <div class="speed-presets">
+                    <button class="btn-preset" data-rpm="12">12 RPM</button>
+                    <button class="btn-preset" data-rpm="24">24 RPM</button>
+                    <button class="btn-preset active" data-rpm="36">36 RPM</button>
+                    <button class="btn-preset" data-rpm="48">48 RPM</button>
+                    <button class="btn-preset" data-rpm="60">60 RPM</button>
+                    <button class="btn-preset btn-stop" data-rpm="0">DETENER</button>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>🧲 PARÁMETROS DEL ROTOR</h3>
+                <div class="slider-group">
+                    <label>Campo Magnético (B): <span id="lblB">0.5 T</span></label>
+                    <input type="range" id="sliderB" min="0.1" max="1.5" step="0.1" value="0.5">
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>🌀 PARÁMETROS DEL ESTATOR</h3>
+                <div class="slider-group">
+                    <label>Número de Espiras (N): <span id="lblN">2 Espiras</span></label>
+                    <input type="range" id="sliderN" min="1" max="4" step="1" value="2">
+                </div>
+                <div class="slider-group">
+                    <label>Área de Espira (A): <span id="lblA">0.02 m²</span></label>
+                    <input type="range" id="sliderA" min="0.01" max="0.10" step="0.01" value="0.02">
+                </div>
+            </div>
+        </section>
+        <footer class="lab-footer">
+            <div class="footer-content">
+                <span>PROYECTO DE FÍSICA EELÉCTRICA</span>
+                <span class="author">Desarrollado por: <strong>Jherson Adolfo Rojas Rios</strong></span>
+            </div>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
