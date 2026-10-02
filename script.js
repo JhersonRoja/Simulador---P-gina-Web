@@ -71,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Vpico = N * B * A * omega
         const vPeak = state.N * state.B * state.A * omega;
+        state.vPeak = vPeak;
         const vRms = vPeak / Math.SQRT2;
         const vInst = state.rpm > 0 ? vPeak * Math.sin(state.angle) : 0;
 
@@ -79,10 +80,12 @@ document.addEventListener('DOMContentLoaded', () => {
             state.history.shift();
         }
 
-        valVPeak.innerHTML = `${vPeak.toFixed(2)} <span class="unit">V</span>`;
-        valVRms.innerHTML = `${vRms.toFixed(2)} <span class="unit">V</span>`;
-        valVInst.innerHTML = `${vInst.toFixed(2)} <span class="unit">V</span>`;
-        valFreq.innerHTML = `${freq.toFixed(2)} <span class="unit">Hz</span>`;
+        if (!midiendo) {
+        valVPeak.innerHTML = `${vPeak.toFixed(3)} <span class="unit">V</span>`;
+        }
+        valVRms.innerHTML = `${vRms.toFixed(3)} <span class="unit">V</span>`;
+        valVInst.innerHTML = `${vInst.toFixed(3)} <span class="unit">V</span>`;
+        valFreq.innerHTML = `${freq.toFixed(3)} <span class="unit">Hz</span>`;
     }
 
     function drawOscilloscope() {
@@ -97,16 +100,24 @@ document.addEventListener('DOMContentLoaded', () => {
         oscCtx.moveTo(0, midY);
         oscCtx.lineTo(width, midY);
         oscCtx.stroke();
+        
 
         if (state.history.length === 0) return;
 
         oscCtx.beginPath();
         oscCtx.strokeStyle = '#00ff66';
         oscCtx.lineWidth = 2;
+        
 
         // Escala vertical
-        const maxV = 4 * 1.5 * 0.1 * ((60 * 2 * Math.PI)/60); // ~3.77V
+        const maxV = state.N * state.B * state.A * ((60 * 2 * Math.PI) / 60); // ~3.77V
         const scaleY = (height / 2 - 15) / maxV;
+        oscCtx.fillStyle = 'rgba(255,255,255,0.4)';
+        oscCtx.font = '11px monospace';
+        oscCtx.textAlign = 'left';
+        oscCtx.fillText('0V', 6, midY - 6);
+        oscCtx.fillText(`+${maxV.toFixed(2)}V`, 6, 14);
+        oscCtx.fillText(`-${maxV.toFixed(2)}V`, 6, height - 6);
 
         for (let i = 0; i < state.history.length; i++) {
             const x = (i / state.maxHistory) * width;
@@ -232,5 +243,97 @@ document.addEventListener('DOMContentLoaded', () => {
         requestAnimationFrame(loop);
     }
 
+        // --- Módulo de medición: congela el Voltaje Pico con ruido de instrumento ---
+    let midiendo = false;
+    let contadorLecturas = 0;
+
+    const estiloMedicion = document.createElement('style');
+    estiloMedicion.textContent = `
+      .valor-congelado {
+        color: #ffcc00 !important;
+        text-shadow: 0 0 10px rgba(255,204,0,0.6);
+        transition: color 0.3s ease, text-shadow 0.3s ease;
+      }
+      .flash-medicion { animation: flashReading 0.4s ease; }
+      @keyframes flashReading {
+        0% { background-color: rgba(255,204,0,0.2); }
+        100% { background-color: transparent; }
+      }
+      .panel-medicion {
+        background: #1a1d26;
+        border: 1px solid #2a2f45;
+        border-radius: 10px;
+        padding: 14px 18px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        font-family: inherit;
+      }
+      .btn-medir, .btn-reset {
+        border: none;
+        border-radius: 6px;
+        padding: 10px 18px;
+        font-weight: bold;
+        cursor: pointer;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+      }
+      .btn-medir { background: #00ff66; color: #061a0d; }
+      .btn-medir:hover { background: #33ff88; }
+      .btn-medir:disabled { background: #2a2f45; color: #5a6376; cursor: not-allowed; }
+      .btn-reset { background: #2a2f45; color: #9aa3b2; }
+      .btn-reset:hover { background: #363c56; color: #fff; }
+      .texto-lectura { font-family: monospace; font-size: 13px; color: #9aa3b2; margin: 0; flex: 1; min-width: 180px; }
+      .texto-precision { font-family: monospace; font-size: 11px; color: #5a6376; margin: 4px 0 0; width: 100%; }
+    `;
+    document.head.appendChild(estiloMedicion);
+
+    const filaStats = valFreq.closest('[class]').parentElement;
+
+    const panelMedicion = document.createElement('div');
+    panelMedicion.className = 'panel-medicion';
+    panelMedicion.style.marginTop = '14px';
+    panelMedicion.innerHTML = `
+        <button class="btn-medir" id="btnMedir">📏 Tomar Lectura</button>
+        <button class="btn-reset" id="btnReset">↺ Reiniciar contador</button>
+        <p class="texto-lectura" id="etiquetaLectura">Selecciona un RPM y mide</p>
+        <p class="texto-precision">Precisión del instrumento: ±3% (simula el margen de error real de un multímetro)</p>
+    `;
+    filaStats.insertAdjacentElement('afterend', panelMedicion);
+
+    const btnLeer = panelMedicion.querySelector('#btnMedir');
+    const btnReset = panelMedicion.querySelector('#btnReset');
+    const etiquetaLectura = panelMedicion.querySelector('#etiquetaLectura');
+
+    btnLeer.addEventListener('click', () => {
+        if (midiendo) return;
+
+        if (state.rpm === 0) {
+            etiquetaLectura.textContent = '⚠ Selecciona una velocidad antes de medir';
+            return;
+        }
+
+        const ruido = 0.97 + Math.random() * 0.06;
+        const lectura = state.vPeak * ruido;
+
+        midiendo = true;
+        contadorLecturas++;
+
+        valVPeak.innerHTML = `${lectura.toFixed(3)} <span class="unit">V</span>`;
+        valVPeak.classList.add('valor-congelado', 'flash-medicion');
+        etiquetaLectura.textContent = `Lectura #${contadorLecturas} registrada a ${state.rpm} RPM`;
+
+        setTimeout(() => {
+            valVPeak.classList.remove('valor-congelado', 'flash-medicion');
+            midiendo = false;
+        }, 1200);
+    });
+
+    btnReset.addEventListener('click', () => {
+        contadorLecturas = 0;
+        etiquetaLectura.textContent = 'Contador reiniciado — selecciona un RPM y mide';
+    });
     requestAnimationFrame(loop);
 });
